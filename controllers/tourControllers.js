@@ -1,32 +1,30 @@
 // const fs = require('fs');
+const { query } = require('express');
 const Tour = require('./../models/tourModel');
 
-// exports.checkID = (req, res, next, val)=>{
-//   const id = val;
-
-//   if (id > tours.length) {
-//     return res.status(404).json({
-//       status: 'failed',
-//       message: 'Invalid ID',
-//     });
-//   }
-//   next();
-// }
-
-// exports.checkBody = (req, res, next)=>{
-//   if(!req.body.name || !req.body.price){
-//     return res.status(400).josn({
-//       status : "Failed",
-//       message: "Missing Name OR Price"
-//     });
-//   }
-//   next();
-// }
-console.log("This is tourControllers");
 exports.getAllTours = async (req, res) => {
-  console.log("This is query", req.query);
 try{
-  const tours = await Tour.find().where('duratioin').equals(5).where('difficulty').equals('easy');
+  //BUILD THE QUERY
+  // 1) Filtring
+  const queryObj = {...req.query};
+  const excludeFields = ['page','sort', 'limit', 'fields'];
+  excludeFields.forEach(el=> delete queryObj[el]);
+
+  //2) Advance Filtring
+  let queryStr = JSON.stringify(queryObj);
+  queryStr = queryStr.replace(/\b(gte|gt| lte| lt)\b/g, match=>`$${match}`);
+  console.log("Query String", JSON.parse(queryStr));
+  //{difficulty: 'easy', duration: {$gte:5}}
+  //{difficulty: 'easy', duration: {gte:'5'}}
+  // gte, gt, lte, lt
+
+  const query = await Tour.find(JSON.parse(queryStr));
+  // const tours = await Tour.find().where('duratioin').equals(5).where('difficulty').equals('easy');
+
+  //EXECUTE THE QUERY
+  const tours = await query;
+
+  //SEND RESPONSE
   res.status(200).json({
     status: 'Success',
     results: tours.length,
@@ -55,11 +53,6 @@ exports.getTour = async (req, res) => {
       message: err
     })
   }
-  // const tour = tours.find((el) => el.id === id);
-  // res.status(200).json({
-  //   status: 'Success',
-  //   data: { tour: tour },
-  // });
 };
 
 exports.createTour = async (req, res) => {

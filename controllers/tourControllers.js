@@ -5,12 +5,12 @@ const Tour = require('./../models/tourModel');
 exports.getAllTours = async (req, res) => {
 try{
   //BUILD THE QUERY
-  // 1) Filtring
+  // 1A) Filtring
   const queryObj = {...req.query};
   const excludeFields = ['page','sort', 'limit', 'fields'];
   excludeFields.forEach(el=> delete queryObj[el]);
 
-  //2) Advance Filtring
+  //1B) Advance Filtring
   let queryStr = JSON.stringify(queryObj);
   queryStr = queryStr.replace(/\b(gte|gt| lte| lt)\b/g, match=>`$${match}`);
   console.log("Query String", JSON.parse(queryStr));
@@ -18,8 +18,33 @@ try{
   //{difficulty: 'easy', duration: {gte:'5'}}
   // gte, gt, lte, lt
 
-  const query = await Tour.find(JSON.parse(queryStr));
+  // let query = await Tour.find();
   // const tours = await Tour.find().where('duratioin').equals(5).where('difficulty').equals('easy');
+
+  //2) Sorting
+  //  if(req.query.sort){
+  //   query = await Tour.find().sort(req.query.sort);
+  //  }
+
+  // 3) Field limiting
+  // if(req.query.fields){
+  //   const fields = req.query.fields.split(',').join(' ');
+  //   query = await Tour.find().select(fields);
+  // }else{
+  //   query = query.select('-__v');
+  // }
+
+  // 4) Pagination
+  const page = req.query.page * 1 || 1;
+  const limit = req.query.limit * 1 || 100;
+  const skip = (page-1) * limit;
+  //  page=2&limi=10, 1-10
+  const query = await Tour.find().skip(skip).limit(limit);
+
+  if(req.query.page){
+    const numTours = await Tour.countDocuments();
+    if(skip>=numTours) throw new Error('This page does ot exist');
+  }
 
   //EXECUTE THE QUERY
   const tours = await query;
